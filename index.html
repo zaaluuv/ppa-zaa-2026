@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Laporan PPA - Halaqah Bu Zaahiroh</title>
+  <link rel="icon" type="image/png" href="image/ppa_zaa_logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div id="toast" class="toast hidden">
+    <span id="toast-msg"></span>
+  </div>
+
+  <div id="splash-screen" class="splash-screen">
+    <div class="splash-content">
+      <div class="splash-decoration splash-decoration-1"></div>
+      <div class="splash-decoration splash-decoration-2"></div>
+      <div class="splash-bismillah">بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ</div>
+      <h1 class="splash-title">أَهْلًا وَسَهْلًا</h1>
+      <div class="splash-divider"></div>
+      <h2 class="splash-subtitle">Halaqah Bu Zaahiroh</h2>
+      <p class="splash-desc">Laporan PPA Kelas 10</p>
+      <button class="splash-btn" onclick="closeSplash()">
+        <span>Masuk</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <div class="navbar-brand">
+        <div class="navbar-logo">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        </div>
+        <span class="navbar-title">PPA Bu Zaahiroh</span>
+      </div>
+      <div class="navbar-actions">
+        <button id="btn-back-guest" class="btn btn-ghost btn-sm hidden" onclick="backToGuestMode()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          Guest
+        </button>
+        <button id="btn-login" class="btn btn-outline btn-sm" onclick="openLoginModal()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          Admin
+        </button>
+        <button id="btn-logout" class="btn btn-danger btn-sm hidden" onclick="logoutAdmin()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Logout
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <main id="guest-view" class="main-container">
+
+    <section id="step-nama" class="step-section">
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-number">1</div>
+          <div>
+            <h3 class="step-title">Pilih Nama Siswi</h3>
+            <p class="step-desc">Pilih nama untuk melihat laporan hafalan</p>
+          </div>
+        </div>
+        <div class="select-wrapper">
+          <select id="select-siswi" class="custom-select">
+            <option value="" disabled selected>-- Pilih Nama Siswi --</option>
+          </select>
+          <svg class="select-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <button onclick="nextToDate()" class="btn btn-primary btn-full" id="btn-next-tanggal">
+          <span>Lanjut Pilih Tanggal</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <section id="step-tanggal" class="step-section hidden">
+      <div class="step-card">
+        <div class="step-header">
+          <button class="btn-back" onclick="backToNama()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <div class="step-header-text">
+            <div class="step-number">2</div>
+            <div>
+              <h3 class="step-title">Pilih Tanggal</h3>
+              <p class="step-desc" id="selected-name-display">-</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="calendar">
+          <div class="calendar-header">
+            <button class="cal-nav" onclick="calPrev()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <span id="cal-month-year" class="cal-label"></span>
+            <button class="cal-nav" onclick="calNext()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
+          </div>
+          <div class="calendar-weekdays">
+            <span>Min</span><span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span>
+          </div>
+          <div id="cal-days" class="calendar-days"></div>
+        </div>
+
+        <div id="selected-date-display" class="selected-date-display hidden">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span id="selected-date-text">-</span>
+        </div>
+
+        <button onclick="showReportCard()" class="btn btn-primary btn-full" id="btn-lihat-laporan">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span>Lihat Laporan</span>
+        </button>
+      </div>
+    </section>
+
+    <section id="card-laporan" class="step-section hidden">
+      <button class="btn-back-text" onclick="backToDate()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        Pilih Tanggal Lain
+      </button>
+
+      <div class="report-card">
+        <div class="report-card-header">
+          <div class="report-card-badge">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+          </div>
+          <div>
+            <h2 id="card-nama" class="report-card-name">Nama Siswi</h2>
+            <p id="card-tgl" class="report-card-date">Tanggal: -</p>
+          </div>
+        </div>
+
+        <div class="report-card-body">
+          <div class="report-field">
+            <div class="report-field-header">
+              <span class="report-field-icon report-field-icon-green">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </span>
+              <span class="report-field-label">Ziyadah (Hafalan Baru)</span>
+            </div>
+            <p id="card-ziyadah" class="report-field-value">-</p>
+          </div>
+
+          <div class="report-field">
+            <div class="report-field-header">
+              <span class="report-field-icon report-field-icon-blue">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+              </span>
+              <span class="report-field-label">Murajaah</span>
+            </div>
+            <p id="card-murajaah" class="report-field-value">-</p>
+          </div>
+
+          <div class="report-field">
+            <div class="report-field-header">
+              <span class="report-field-icon report-field-icon-yellow">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </span>
+              <span class="report-field-label">Catatan Guru</span>
+            </div>
+            <p id="card-catatan" class="report-field-value">-</p>
+          </div>
+
+          <div class="report-field">
+            <div class="report-field-header">
+              <span class="report-field-icon report-field-icon-purple">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              </span>
+              <span class="report-field-label">Keterangan</span>
+            </div>
+            <span id="card-keterangan" class="report-badge">-</span>
+          </div>
+        </div>
+
+        <div class="report-card-footer">
+          <p class="report-dua">
+            🤲 "Semoga Allah Ta'ala memberikan keberkahan dan kemudahan kepada ananda dalam menghafal Al-Qur'an, serta menjadikan mereka termasuk ahlul Qur'an. Aamiin."
+          </p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <main id="admin-view" class="main-container hidden">
+    <div class="admin-header">
+      <div class="admin-header-left">
+        <h2 class="admin-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          Panel Kelola Laporan
+        </h2>
+        <p class="admin-subtitle">Kelola data hafalan siswi halaqah</p>
+      </div>
+      <button onclick="toggleGuestView()" class="btn btn-outline btn-sm">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        Lihat Guest
+      </button>
+    </div>
+
+    <div class="admin-stats">
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-blue">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div>
+          <span class="stat-value" id="stat-total">0</span>
+          <span class="stat-label">Total Laporan</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-green">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <div>
+          <span class="stat-value" id="stat-nama">0</span>
+          <span class="stat-label">Total Nama</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-gold">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <div>
+          <span class="stat-value" id="stat-hari-ini">0</span>
+          <span class="stat-label">Hari Ini</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-form-card">
+      <div class="form-card-header">
+        <h3 id="form-title" class="form-card-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Tambah Laporan Baru
+        </h3>
+      </div>
+      <input type="hidden" id="admin-doc-id">
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Nama Siswi <span class="required">*</span></label>
+          <input type="text" id="form-nama" placeholder="Contoh: Aisyah" class="form-input">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tanggal <span class="required">*</span></label>
+          <input type="date" id="form-tanggal" class="form-input">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ziyadah (Hafalan Baru)</label>
+          <input type="text" id="form-ziyadah" placeholder="Contoh: An-Naba' 1-15" class="form-input">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Murajaah</label>
+          <input type="text" id="form-murajaah" placeholder="Contoh: An-Nazi'at" class="form-input">
+        </div>
+        <div class="form-group form-group-full">
+          <label class="form-label">Catatan Guru</label>
+          <textarea id="form-catatan" placeholder="Contoh: Perbaiki tajwid ghunnah" class="form-input form-textarea" rows="2"></textarea>
+        </div>
+        <div class="form-group form-group-full">
+          <label class="form-label">Keterangan Status</label>
+          <div class="select-wrapper">
+            <select id="form-keterangan" class="custom-select">
+              <option value="Lanjut">Lanjut</option>
+              <option value="Kurang Lancar">Kurang Lancar</option>
+              <option value="Mengulang">Mengulang</option>
+              <option value="Izin / Sakit">Izin / Sakit</option>
+            </select>
+            <svg class="select-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button onclick="simpanLaporan()" class="btn btn-primary" id="btn-simpan">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Simpan Data
+        </button>
+        <button id="btn-batal-edit" onclick="resetFormAdmin()" class="btn btn-ghost hidden">
+          Batal Edit
+        </button>
+      </div>
+    </div>
+
+    <div class="admin-search-bar">
+      <div class="search-input-wrapper">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="search-input" placeholder="Cari nama siswi..." class="search-input" oninput="filterTable()">
+      </div>
+      <div class="select-wrapper select-wrapper-sm">
+        <select id="filter-keterangan" class="custom-select" onchange="filterTable()">
+          <option value="">Semua Keterangan</option>
+          <option value="Lanjut">Lanjut</option>
+          <option value="Kurang Lancar">Kurang Lancar</option>
+          <option value="Mengulang">Mengulang</option>
+          <option value="Izin / Sakit">Izin / Sakit</option>
+        </select>
+        <svg class="select-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </div>
+
+    <div class="admin-table-card">
+      <div class="table-responsive">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Nama</th>
+              <th>Tanggal</th>
+              <th>Ziyadah</th>
+              <th>Murajaah</th>
+              <th>Catatan</th>
+              <th>Ket.</th>
+              <th class="th-center">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="admin-table-body">
+          </tbody>
+        </table>
+      </div>
+      <div id="table-empty" class="table-empty hidden">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.3"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <p>Belum ada data laporan</p>
+      </div>
+    </div>
+  </main>
+
+  <div id="login-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <h3 class="modal-title">Login Admin</h3>
+        <p class="modal-desc">Masukkan kredensial untuk mengakses panel admin</p>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <input type="text" id="admin-usn" placeholder="Masukkan username" class="form-input" onkeydown="if(event.key==='Enter')loginAdmin()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" id="admin-pw" placeholder="Masukkan password" class="form-input" onkeydown="if(event.key==='Enter')loginAdmin()">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeLoginModal()" class="btn btn-ghost">Batal</button>
+        <button onclick="loginAdmin()" class="btn btn-primary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          Login
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="delete-modal" class="modal-overlay hidden">
+    <div class="modal-card modal-card-sm">
+      <div class="modal-header">
+        <div class="modal-icon modal-icon-danger">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+        </div>
+        <h3 class="modal-title">Hapus Laporan?</h3>
+        <p class="modal-desc">Data yang dihapus tidak dapat dikembalikan.</p>
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeDeleteModal()" class="btn btn-ghost">Batal</button>
+        <button onclick="confirmDelete()" class="btn btn-danger">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          Hapus
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="detail-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title" id="detail-modal-title">Detail Laporan</h3>
+        <button class="modal-close" onclick="closeDetailModal()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" id="detail-modal-body">
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeDetailModal()" class="btn btn-ghost">Tutup</button>
+        <button id="detail-btn-edit" class="btn btn-primary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Edit
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
