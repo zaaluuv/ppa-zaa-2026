@@ -46,7 +46,7 @@ window.closeSplash = function () {
 // ===================== GUEST NAVIGATION =====================
 window.nextToDate = function () {
   const nama = document.getElementById("select-santri").value;
-  if (!nama) return showToast("Pilih nama santri terlebih dahulu!", "error");
+  if (!nama) return showToast("Pilih nama siswi terlebih dahulu!", "error");
   document.getElementById("selected-name-display").textContent = nama;
   document.getElementById("step-nama").classList.add("hidden");
   document.getElementById("step-tanggal").classList.remove("hidden");
@@ -330,7 +330,7 @@ onSnapshot(laporanRef, (snapshot) => {
 function populateSantriSelect() {
   const select = document.getElementById("select-santri");
   const currentVal = select.value;
-  select.innerHTML = '<option value="" disabled selected>-- Pilih Nama Santri --</option>';
+  select.innerHTML = '<option value="" disabled selected>-- Pilih Nama Siswi --</option>';
 
   const sortedNames = Array.from(uniqueNamesSet).sort();
   sortedNames.forEach(nama => {
@@ -472,7 +472,7 @@ window.simpanLaporan = async function () {
   const catatan = document.getElementById("form-catatan").value.trim();
   const keterangan = document.getElementById("form-keterangan").value;
 
-  if (!nama) return showToast("Nama santri wajib diisi!", "error");
+  if (!nama) return showToast("Nama siswi wajib diisi!", "error");
   if (!tanggal) return showToast("Tanggal wajib diisi!", "error");
 
   const payload = { nama, tanggal, ziyadah, murajaah, catatan, keterangan };
