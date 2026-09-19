@@ -19,9 +19,15 @@ const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const db = getFirestore(app);
 const laporanRef = collection(db, "laporan_ppa");
+const siswiRef = collection(db, "nama_siswi");
+const suratRef = collection(db, "surat");
+const ayatRef = collection(db, "ayat");
 
 let allLaporanData = [];
 let uniqueNamesSet = new Set();
+let allSiswi = [];
+let allSurat = [];
+let allAyat = [];
 let calMonth, calYear;
 let selectedCalDate = null;
 let pendingDeleteId = null;
@@ -33,6 +39,136 @@ function showToast(msg, type = "success") {
   toastMsg.textContent = msg;
   toast.className = "toast toast-" + type + " show";
   setTimeout(() => { toast.className = "toast hidden"; }, 3000);
+}
+
+// ===================== SEARCHABLE SELECT =====================
+const searchableSelects = {};
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function initSearchableSelect(selectId, placeholder) {
+  const select = document.getElementById(selectId);
+  if (!select) return;
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "sselect";
+  wrapper.innerHTML =
+    '<input type="text" class="sselect-input" placeholder="' + escapeHtml(placeholder) + '" autocomplete="off" readonly>' +
+    '<div class="sselect-list"></div>';
+  select.classList.add("sselect-hidden-select");
+  select.parentNode.insertBefore(wrapper, select);
+
+  const input = wrapper.querySelector(".sselect-input");
+  const list = wrapper.querySelector(".sselect-list");
+  const st = { open: false, active: -1, shown: [] };
+
+  function allOptions() {
+    return Array.from(select.options).map(o => ({ value: o.value, label: o.textContent }));
+  }
+  function selectedLabel() {
+    const o = Array.from(select.options).find(x => String(x.value) === String(select.value));
+    return o ? o.textContent : "";
+  }
+  function render(filter) {
+    const f = (filter || "").toLowerCase();
+    st.shown = allOptions().filter(o => !f || String(o.label).toLowerCase().includes(f));
+    if (st.shown.length) {
+      list.innerHTML = st.shown.map((o, i) =>
+        '<div class="sselect-option' + (String(o.value) === String(select.value) ? " selected" : "") + '" data-i="' + i + '" data-value="' + escapeHtml(String(o.value)) + '">' + escapeHtml(o.label) + '</div>'
+      ).join("");
+    } else {
+      list.innerHTML = '<div class="sselect-empty">Tidak ada hasil</div>';
+    }
+    st.active = -1;
+  }
+  function setActive(i) {
+    const els = list.querySelectorAll(".sselect-option");
+    els.forEach(el => el.classList.remove("active"));
+    if (i >= 0 && i < els.length) {
+      els[i].classList.add("active");
+      els[i].scrollIntoView({ block: "nearest" });
+    }
+    st.active = i;
+  }
+  function refreshDisplay() {
+    input.value = select.value ? selectedLabel() : "";
+  }
+  function open() {
+    st.open = true;
+    input.classList.add("open");
+    input.removeAttribute("readonly");
+    list.classList.remove("hidden");
+    input.value = "";
+    render("");
+    input.focus();
+  }
+  function close() {
+    st.open = false;
+    input.classList.remove("open");
+    input.setAttribute("readonly", "readonly");
+    list.classList.add("hidden");
+    refreshDisplay();
+  }
+  function commit(value) {
+    select.value = value;
+    close();
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
+  input.addEventListener("focus", () => { if (!st.open) open(); });
+  input.addEventListener("click", () => { if (!st.open) open(); });
+  input.addEventListener("input", () => {
+    if (!st.open) open();
+    render(input.value);
+  });
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (st.shown.length) setActive(st.active < st.shown.length - 1 ? st.active + 1 : 0);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (st.shown.length) setActive(st.active > 0 ? st.active - 1 : st.shown.length - 1);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (st.open) {
+        const o = st.shown[st.active >= 0 ? st.active : 0];
+        if (o) commit(o.value);
+      }
+    } else if (e.key === "Escape") {
+      close();
+    }
+  });
+  input.addEventListener("blur", () => { setTimeout(close, 120); });
+  list.addEventListener("mousedown", (e) => { e.preventDefault(); });
+  list.addEventListener("click", (e) => {
+    const el = e.target.closest(".sselect-option");
+    if (el) commit(el.dataset.value);
+  });
+
+  refreshDisplay();
+  searchableSelects[selectId] = { sync: refreshDisplay };
+}
+
+function syncSearchableSelects() {
+  Object.keys(searchableSelects).forEach(id => searchableSelects[id].sync());
+}
+
+function initAllSearchableSelects() {
+  initSearchableSelect("select-santri", "-- Pilih Nama Siswi --");
+  initSearchableSelect("form-nama", "-- Pilih Nama Siswi --");
+  initSearchableSelect("form-ziyadah-surat", "-- Pilih Surat --");
+  initSearchableSelect("form-ziyadah-ayat-awal", "-- Pilih Ayat --");
+  initSearchableSelect("form-ziyadah-ayat-akhir", "-- Pilih Ayat --");
+  initSearchableSelect("form-murajaah-surat", "-- Pilih Surat --");
+  initSearchableSelect("form-murajaah-ayat-awal", "-- Pilih Ayat --");
+  initSearchableSelect("form-murajaah-ayat-akhir", "-- Pilih Ayat --");
 }
 
 // ===================== SPLASH SCREEN =====================
@@ -240,13 +376,15 @@ window.loginAdmin = function () {
   const usn = document.getElementById("admin-usn").value.trim();
   const pw = document.getElementById("admin-pw").value;
 
-  if (usn === "zazairaa" && pw === "zai2708") {
+  if (usn === "ppacs2627" && pw === "laz2627") {
     closeLoginModal();
     document.getElementById("btn-login").classList.add("hidden");
     document.getElementById("btn-logout").classList.remove("hidden");
     document.getElementById("btn-back-guest").classList.remove("hidden");
     document.getElementById("guest-view").classList.add("hidden");
     document.getElementById("admin-view").classList.remove("hidden");
+    adminNav("laporan");
+    resetFormAdmin();
     updateStats();
     showToast("Login admin berhasil!");
   } else {
@@ -281,6 +419,7 @@ function resetGuestView() {
   document.getElementById("step-nama").classList.remove("hidden");
   document.getElementById("select-santri").selectedIndex = 0;
   selectedCalDate = null;
+  syncSearchableSelects();
 }
 
 // ===================== DEBUG HELPERS =====================
@@ -343,6 +482,262 @@ function populateSantriSelect() {
   if (currentVal && uniqueNamesSet.has(currentVal)) {
     select.value = currentVal;
   }
+  syncSearchableSelects();
+}
+
+// ===================== DATA REFERENSI (SISWI, SURAT, AYAT) =====================
+onSnapshot(siswiRef, (snapshot) => {
+  allSiswi = [];
+  snapshot.forEach((docSnap) => {
+    const data = docSnap.data();
+    data.id = docSnap.id;
+    allSiswi.push(data);
+  });
+  allSiswi.sort((a, b) => String(a.nama || "").localeCompare(String(b.nama || ""), "id"));
+  populateFormSelects();
+  renderSiswiTable();
+}, (error) => {
+  console.error("Siswi read error:", error);
+});
+
+onSnapshot(suratRef, (snapshot) => {
+  allSurat = [];
+  snapshot.forEach((docSnap) => {
+    const data = docSnap.data();
+    data.id = docSnap.id;
+    allSurat.push(data);
+  });
+  allSurat.sort((a, b) => String(a.nama || "").localeCompare(String(b.nama || ""), "id"));
+  populateFormSelects();
+  renderSuratTable();
+}, (error) => {
+  console.error("Surat read error:", error);
+});
+
+onSnapshot(ayatRef, (snapshot) => {
+  allAyat = [];
+  snapshot.forEach((docSnap) => {
+    const data = docSnap.data();
+    data.id = docSnap.id;
+    allAyat.push(data);
+  });
+  allAyat.sort((a, b) => Number(a.nomor) - Number(b.nomor));
+  populateFormSelects();
+  renderAyatTable();
+}, (error) => {
+  console.error("Ayat read error:", error);
+});
+
+function populateFormSelects() {
+  const selNama = document.getElementById("form-nama");
+  if (!selNama) return;
+  const curNama = selNama.value;
+  selNama.innerHTML = '<option value="" disabled selected>-- Pilih Nama Siswi --</option>';
+  allSiswi.forEach(s => {
+    const opt = document.createElement("option");
+    opt.value = s.nama;
+    opt.textContent = s.nama;
+    selNama.appendChild(opt);
+  });
+  preserveSelectValue(selNama, curNama);
+
+  ["form-ziyadah-surat", "form-murajaah-surat"].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = '<option value="" selected>-- Pilih Surat --</option>';
+    allSurat.forEach(s => {
+      const opt = document.createElement("option");
+      opt.value = s.nama;
+      opt.textContent = s.nama;
+      sel.appendChild(opt);
+    });
+    preserveSelectValue(sel, cur);
+  });
+
+  ["form-ziyadah-ayat-awal", "form-ziyadah-ayat-akhir", "form-murajaah-ayat-awal", "form-murajaah-ayat-akhir"].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = '<option value="" selected>-- Pilih --</option>';
+    allAyat.forEach(a => {
+      const opt = document.createElement("option");
+      opt.value = String(a.nomor);
+      opt.textContent = String(a.nomor);
+      sel.appendChild(opt);
+    });
+    preserveSelectValue(sel, cur);
+  });
+  syncSearchableSelects();
+}
+
+function preserveSelectValue(select, val) {
+  if (val === undefined || val === null || val === "") return;
+  const exists = Array.from(select.options).some(o => o.value === String(val));
+  if (!exists) {
+    const opt = document.createElement("option");
+    opt.value = String(val);
+    opt.textContent = String(val);
+    select.appendChild(opt);
+  }
+  select.value = String(val);
+}
+
+function buildRange(surat, awal, akhir) {
+  if (!surat) return "";
+  if (!awal) return surat;
+  return surat + " " + awal + (akhir ? "-" + akhir : "");
+}
+
+function parseRange(str) {
+  if (!str) return { surat: "", awal: "", akhir: "" };
+  str = String(str).trim();
+  for (const s of allSurat) {
+    const nm = s.nama;
+    if (str === nm) return { surat: nm, awal: "", akhir: "" };
+    if (str.startsWith(nm + " ")) {
+      const rest = str.slice(nm.length).trim();
+      const m = rest.match(/^(\d+)(?:-(\d+))?$/);
+      if (m) return { surat: nm, awal: m[1], akhir: m[2] || "" };
+    }
+  }
+  return { surat: "", awal: "", akhir: "" };
+}
+
+// ===================== ADMIN NAVIGATION =====================
+window.adminNav = function (section) {
+  ["laporan", "siswi", "surat", "ayat"].forEach(s => {
+    const el = document.getElementById("admin-section-" + s);
+    if (el) el.classList.toggle("hidden", s !== section);
+  });
+  document.querySelectorAll(".admin-nav-item").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.section === section);
+  });
+};
+
+// ===================== MANAJEMEN DATA SISWI =====================
+window.tambahSiswi = async function () {
+  const input = document.getElementById("input-siswi");
+  const nama = input.value.trim();
+  if (!nama) return showToast("Nama siswi wajib diisi!", "error");
+  const exists = allSiswi.some(s => String(s.nama).trim().toLowerCase() === nama.toLowerCase());
+  if (exists) return showToast("Nama siswi sudah ada!", "error");
+  try {
+    await addDoc(siswiRef, { nama });
+    input.value = "";
+    showToast("Nama siswi berhasil ditambahkan!");
+  } catch (error) {
+    showToast("Gagal menambah: " + error.message, "error");
+  }
+};
+
+function renderSiswiTable() {
+  const tbody = document.getElementById("siswi-table-body");
+  const empty = document.getElementById("siswi-empty");
+  if (!tbody) return;
+  if (allSiswi.length === 0) {
+    tbody.innerHTML = "";
+    if (empty) empty.classList.remove("hidden");
+    return;
+  }
+  if (empty) empty.classList.add("hidden");
+  tbody.innerHTML = allSiswi.map((s, idx) => `
+    <tr>
+      <td>${idx + 1}</td>
+      <td class="td-name">${s.nama}</td>
+      <td class="td-center">
+        <div class="td-actions">
+          <button class="btn-table btn-table-delete" onclick="openDeleteModal('nama_siswi','${s.id}')" title="Hapus">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>
+  `).join("");
+}
+
+// ===================== MANAJEMEN DATA SURAT =====================
+window.tambahSurat = async function () {
+  const input = document.getElementById("input-surat");
+  const nama = input.value.trim();
+  if (!nama) return showToast("Nama surat wajib diisi!", "error");
+  const exists = allSurat.some(s => String(s.nama).trim().toLowerCase() === nama.toLowerCase());
+  if (exists) return showToast("Nama surat sudah ada!", "error");
+  try {
+    await addDoc(suratRef, { nama });
+    input.value = "";
+    showToast("Surat berhasil ditambahkan!");
+  } catch (error) {
+    showToast("Gagal menambah: " + error.message, "error");
+  }
+};
+
+function renderSuratTable() {
+  const tbody = document.getElementById("surat-table-body");
+  const empty = document.getElementById("surat-empty");
+  if (!tbody) return;
+  if (allSurat.length === 0) {
+    tbody.innerHTML = "";
+    if (empty) empty.classList.remove("hidden");
+    return;
+  }
+  if (empty) empty.classList.add("hidden");
+  tbody.innerHTML = allSurat.map((s, idx) => `
+    <tr>
+      <td>${idx + 1}</td>
+      <td class="td-name">${s.nama}</td>
+      <td class="td-center">
+        <div class="td-actions">
+          <button class="btn-table btn-table-delete" onclick="openDeleteModal('surat','${s.id}')" title="Hapus">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>
+  `).join("");
+}
+
+// ===================== MANAJEMEN DATA AYAT =====================
+window.tambahAyat = async function () {
+  const input = document.getElementById("input-ayat");
+  const val = input.value.trim();
+  if (!val) return showToast("Nomor ayat wajib diisi!", "error");
+  if (!/^\d+$/.test(val) || Number(val) < 1) return showToast("Nomor ayat harus angka positif!", "error");
+  const nomor = Number(val);
+  const exists = allAyat.some(a => Number(a.nomor) === nomor);
+  if (exists) return showToast("Nomor ayat sudah ada!", "error");
+  try {
+    await addDoc(ayatRef, { nomor });
+    input.value = "";
+    showToast("Ayat berhasil ditambahkan!");
+  } catch (error) {
+    showToast("Gagal menambah: " + error.message, "error");
+  }
+};
+
+function renderAyatTable() {
+  const tbody = document.getElementById("ayat-table-body");
+  const empty = document.getElementById("ayat-empty");
+  if (!tbody) return;
+  if (allAyat.length === 0) {
+    tbody.innerHTML = "";
+    if (empty) empty.classList.remove("hidden");
+    return;
+  }
+  if (empty) empty.classList.add("hidden");
+  tbody.innerHTML = allAyat.map((a, idx) => `
+    <tr>
+      <td>${idx + 1}</td>
+      <td class="td-name">${a.nomor}</td>
+      <td class="td-center">
+        <div class="td-actions">
+          <button class="btn-table btn-table-delete" onclick="openDeleteModal('ayat','${a.id}')" title="Hapus">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>
+  `).join("");
 }
 
 function updateStats() {
@@ -393,7 +788,7 @@ function renderAdminTable() {
           <button class="btn-table btn-table-edit" onclick="editLaporan('${item.id}')" title="Edit">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
-          <button class="btn-table btn-table-delete" onclick="openDeleteModal('${item.id}')" title="Hapus">
+          <button class="btn-table btn-table-delete" onclick="openDeleteModal('laporan_ppa','${item.id}')" title="Hapus">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
           </button>
         </div>
@@ -441,8 +836,15 @@ window.closeDetailModal = function () {
 };
 
 // ===================== DELETE MODAL =====================
-window.openDeleteModal = function (id) {
-  pendingDeleteId = id;
+window.openDeleteModal = function (col, id) {
+  pendingDeleteId = { col, id };
+  const titles = {
+    "laporan_ppa": "Hapus Laporan?",
+    "nama_siswi": "Hapus Nama Siswi?",
+    "surat": "Hapus Surat?",
+    "ayat": "Hapus Ayat?"
+  };
+  document.getElementById("delete-modal-title").textContent = titles[col] || "Hapus Data?";
   document.getElementById("delete-modal").classList.remove("hidden");
 };
 
@@ -454,9 +856,9 @@ window.closeDeleteModal = function () {
 window.confirmDelete = async function () {
   if (!pendingDeleteId) return;
   try {
-    await deleteDoc(doc(db, "laporan_ppa", pendingDeleteId));
+    await deleteDoc(doc(db, pendingDeleteId.col, pendingDeleteId.id));
     closeDeleteModal();
-    showToast("Laporan berhasil dihapus!");
+    showToast("Data berhasil dihapus!");
   } catch (error) {
     showToast("Gagal menghapus: " + error.message, "error");
   }
@@ -467,15 +869,32 @@ window.simpanLaporan = async function () {
   const docId = document.getElementById("admin-doc-id").value;
   const nama = document.getElementById("form-nama").value.trim();
   const tanggal = document.getElementById("form-tanggal").value;
-  const ziyadah = document.getElementById("form-ziyadah").value.trim();
-  const murajaah = document.getElementById("form-murajaah").value.trim();
+  const ziyadahSurat = document.getElementById("form-ziyadah-surat").value;
+  const ziyadahAwal = document.getElementById("form-ziyadah-ayat-awal").value;
+  const ziyadahAkhir = document.getElementById("form-ziyadah-ayat-akhir").value;
+  const murajaahSurat = document.getElementById("form-murajaah-surat").value;
+  const murajaahAwal = document.getElementById("form-murajaah-ayat-awal").value;
+  const murajaahAkhir = document.getElementById("form-murajaah-ayat-akhir").value;
   const catatan = document.getElementById("form-catatan").value.trim();
   const keterangan = document.getElementById("form-keterangan").value;
 
   if (!nama) return showToast("Nama siswi wajib diisi!", "error");
   if (!tanggal) return showToast("Tanggal wajib diisi!", "error");
 
-  const payload = { nama, tanggal, ziyadah, murajaah, catatan, keterangan };
+  const ziyadah = buildRange(ziyadahSurat, ziyadahAwal, ziyadahAkhir);
+  const murajaah = buildRange(murajaahSurat, murajaahAwal, murajaahAkhir);
+
+  const payload = {
+    nama, tanggal,
+    ziyadah, murajaah,
+    ziyadah_surat: ziyadahSurat,
+    ziyadah_ayat_awal: ziyadahAwal,
+    ziyadah_ayat_akhir: ziyadahAkhir,
+    murajaah_surat: murajaahSurat,
+    murajaah_ayat_awal: murajaahAwal,
+    murajaah_ayat_akhir: murajaahAkhir,
+    catatan, keterangan
+  };
 
   try {
     if (docId) {
@@ -496,18 +915,46 @@ window.editLaporan = function (id) {
   if (!data) return;
 
   document.getElementById("admin-doc-id").value = data.id;
-  document.getElementById("form-nama").value = data.nama;
+  preserveSelectValue(document.getElementById("form-nama"), data.nama);
   document.getElementById("form-tanggal").value = data.tanggal;
-  document.getElementById("form-ziyadah").value = data.ziyadah || "";
-  document.getElementById("form-murajaah").value = data.murajaah || "";
+
+  let z = { surat: "", awal: "", akhir: "" };
+  if (data.ziyadah_surat || data.ziyadah_ayat_awal || data.ziyadah_ayat_akhir) {
+    z = {
+      surat: data.ziyadah_surat || "",
+      awal: data.ziyadah_ayat_awal || "",
+      akhir: data.ziyadah_ayat_akhir || ""
+    };
+  } else {
+    z = parseRange(data.ziyadah);
+  }
+  preserveSelectValue(document.getElementById("form-ziyadah-surat"), z.surat);
+  preserveSelectValue(document.getElementById("form-ziyadah-ayat-awal"), z.awal);
+  preserveSelectValue(document.getElementById("form-ziyadah-ayat-akhir"), z.akhir);
+
+  let m = { surat: "", awal: "", akhir: "" };
+  if (data.murajaah_surat || data.murajaah_ayat_awal || data.murajaah_ayat_akhir) {
+    m = {
+      surat: data.murajaah_surat || "",
+      awal: data.murajaah_ayat_awal || "",
+      akhir: data.murajaah_ayat_akhir || ""
+    };
+  } else {
+    m = parseRange(data.murajaah);
+  }
+  preserveSelectValue(document.getElementById("form-murajaah-surat"), m.surat);
+  preserveSelectValue(document.getElementById("form-murajaah-ayat-awal"), m.awal);
+  preserveSelectValue(document.getElementById("form-murajaah-ayat-akhir"), m.akhir);
+
   document.getElementById("form-catatan").value = data.catatan || "";
-  document.getElementById("form-keterangan").value = data.keterangan || "Lancar";
+  preserveSelectValue(document.getElementById("form-keterangan"), data.keterangan || "");
 
   document.getElementById("form-title").innerHTML = `
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
     Edit Laporan: ${data.nama}
   `;
   document.getElementById("btn-batal-edit").classList.remove("hidden");
+  syncSearchableSelects();
 
   // Scroll to form
   document.getElementById("admin-view").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -517,15 +964,20 @@ window.resetFormAdmin = function () {
   document.getElementById("admin-doc-id").value = "";
   document.getElementById("form-nama").value = "";
   document.getElementById("form-tanggal").value = "";
-  document.getElementById("form-ziyadah").value = "";
-  document.getElementById("form-murajaah").value = "";
+  document.getElementById("form-ziyadah-surat").value = "";
+  document.getElementById("form-ziyadah-ayat-awal").value = "";
+  document.getElementById("form-ziyadah-ayat-akhir").value = "";
+  document.getElementById("form-murajaah-surat").value = "";
+  document.getElementById("form-murajaah-ayat-awal").value = "";
+  document.getElementById("form-murajaah-ayat-akhir").value = "";
   document.getElementById("form-catatan").value = "";
-  document.getElementById("form-keterangan").value = "Lancar";
+  document.getElementById("form-keterangan").value = "";
   document.getElementById("form-title").innerHTML = `
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     Tambah Laporan Baru
   `;
   document.getElementById("btn-batal-edit").classList.add("hidden");
+  syncSearchableSelects();
 };
 
 // ===================== CLOSE MODALS ON OVERLAY CLICK =====================
@@ -545,3 +997,6 @@ document.addEventListener("keydown", function (e) {
     pendingDeleteId = null;
   }
 });
+
+// ===================== INIT SEARCHABLE SELECTS =====================
+initAllSearchableSelects();
