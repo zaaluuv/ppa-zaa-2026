@@ -71,7 +71,6 @@
           <select id="select-santri" class="custom-select">
             <option value="" disabled selected>Pilih Nama Siswi</option>
           </select>
-          <svg class="select-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
         <button onclick="nextToDate()" class="btn btn-primary btn-full" id="btn-next-tanggal">
           <span>Lanjut Pilih Tanggal</span>
@@ -301,7 +300,7 @@
                   <select id="form-ziyadah-surat" class="custom-select">
                     <option value="" selected>Pilih Surat</option>
                   </select>
-                  <svg class="select-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  
                 </div>
               </div>
               <div class="form-group">
@@ -484,11 +483,12 @@
 
           <div class="admin-form-card">
             <div class="form-card-header">
-              <h3 class="form-card-title">
+              <h3 id="surat-form-title" class="form-card-title">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 Tambah Surat
               </h3>
             </div>
+            <input type="hidden" id="surat-doc-id">
             <div class="form-grid">
               <div class="form-group">
                 <label class="form-label">Nama Surat</label>
@@ -496,7 +496,8 @@
               </div>
             </div>
             <div class="form-actions">
-              <button onclick="tambahSurat()" class="btn btn-primary">Tambah Surat</button>
+              <button onclick="simpanSurat()" class="btn btn-primary" id="btn-simpan-surat">Tambah Surat</button>
+              <button id="btn-batal-edit-surat" onclick="resetFormSurat()" class="btn btn-ghost hidden">Batal Edit</button>
             </div>
           </div>
 

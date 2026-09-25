@@ -61,7 +61,7 @@ function initSearchableSelect(selectId, placeholder) {
   wrapper.className = "sselect";
   wrapper.innerHTML =
     '<input type="text" class="sselect-input" placeholder="' + escapeHtml(placeholder) + '" autocomplete="off" readonly>' +
-    '<div class="sselect-list"></div>';
+    '<div class="sselect-list hidden"></div>';
   select.classList.add("sselect-hidden-select");
   select.parentNode.insertBefore(wrapper, select);
 
@@ -317,8 +317,8 @@ window.showReportCard = function () {
   document.getElementById("card-tgl").textContent = "Tanggal: " + selectedCalDate.toLocaleDateString("id-ID", options);
 
   if (found) {
-    document.getElementById("card-ziyadah").textContent = found.ziyadah || "-";
-    document.getElementById("card-murajaah").textContent = found.murajaah || "-";
+    document.getElementById("card-ziyadah").textContent = formatRangeDisplay(found.ziyadah) || "-";
+    document.getElementById("card-murajaah").textContent = formatRangeDisplay(found.murajaah) || "-";
     document.getElementById("card-catatan").textContent = found.catatan || "-";
     const ketEl = document.getElementById("card-keterangan");
     ketEl.textContent = found.keterangan || "-";
@@ -586,7 +586,7 @@ function preserveSelectValue(select, val) {
 function buildRange(surat, awal, akhir) {
   if (!surat) return "";
   if (!awal) return surat;
-  return surat + " " + awal + (akhir ? "-" + akhir : "");
+  return surat + ": " + awal + (akhir ? " - " + akhir : "");
 }
 
 function parseRange(str) {
@@ -595,13 +595,21 @@ function parseRange(str) {
   for (const s of allSurat) {
     const nm = s.nama;
     if (str === nm) return { surat: nm, awal: "", akhir: "" };
-    if (str.startsWith(nm + " ")) {
-      const rest = str.slice(nm.length).trim();
-      const m = rest.match(/^(\d+)(?:-(\d+))?$/);
+    if (str.startsWith(nm + " ") || str.startsWith(nm + ":")) {
+      let rest = str.slice(nm.length).trim();
+      if (rest.charAt(0) === ":") rest = rest.slice(1).trim();
+      const m = rest.match(/^(\d+)(?:\s*-\s*(\d+))?$/);
       if (m) return { surat: nm, awal: m[1], akhir: m[2] || "" };
     }
   }
   return { surat: "", awal: "", akhir: "" };
+}
+
+function formatRangeDisplay(str) {
+  if (!str) return str || "";
+  const p = parseRange(str);
+  if (!p.surat || (!p.awal && !p.akhir)) return str;
+  return buildRange(p.surat, p.awal, p.akhir);
 }
 
 // ===================== ADMIN NAVIGATION =====================
@@ -657,19 +665,49 @@ function renderSiswiTable() {
 }
 
 // ===================== MANAJEMEN DATA SURAT =====================
-window.tambahSurat = async function () {
+window.simpanSurat = async function () {
+  const docId = document.getElementById("surat-doc-id").value;
   const input = document.getElementById("input-surat");
   const nama = input.value.trim();
   if (!nama) return showToast("Nama surat wajib diisi!", "error");
-  const exists = allSurat.some(s => String(s.nama).trim().toLowerCase() === nama.toLowerCase());
+  const exists = allSurat.some(s => s.id !== docId && String(s.nama).trim().toLowerCase() === nama.toLowerCase());
   if (exists) return showToast("Nama surat sudah ada!", "error");
   try {
-    await addDoc(suratRef, { nama });
-    input.value = "";
-    showToast("Surat berhasil ditambahkan!");
+    if (docId) {
+      await updateDoc(doc(db, "surat", docId), { nama });
+      showToast("Surat berhasil diperbarui!");
+    } else {
+      await addDoc(suratRef, { nama });
+      showToast("Surat berhasil ditambahkan!");
+    }
+    resetFormSurat();
   } catch (error) {
-    showToast("Gagal menambah: " + error.message, "error");
+    showToast("Gagal menyimpan: " + error.message, "error");
   }
+};
+
+window.editSurat = function (id) {
+  const data = allSurat.find(s => s.id === id);
+  if (!data) return;
+  document.getElementById("surat-doc-id").value = data.id;
+  document.getElementById("input-surat").value = data.nama;
+  document.getElementById("surat-form-title").innerHTML = `
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    Edit Surat: ${data.nama}
+  `;
+  document.getElementById("btn-simpan-surat").textContent = "Simpan Perubahan";
+  document.getElementById("btn-batal-edit-surat").classList.remove("hidden");
+};
+
+window.resetFormSurat = function () {
+  document.getElementById("surat-doc-id").value = "";
+  document.getElementById("input-surat").value = "";
+  document.getElementById("surat-form-title").innerHTML = `
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Tambah Surat
+  `;
+  document.getElementById("btn-simpan-surat").textContent = "Tambah Surat";
+  document.getElementById("btn-batal-edit-surat").classList.add("hidden");
 };
 
 function renderSuratTable() {
@@ -688,6 +726,9 @@ function renderSuratTable() {
       <td class="td-name">${s.nama}</td>
       <td class="td-center">
         <div class="td-actions">
+          <button class="btn-table btn-table-edit" onclick="editSurat('${s.id}')" title="Edit">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
           <button class="btn-table btn-table-delete" onclick="openDeleteModal('surat','${s.id}')" title="Hapus">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
           </button>
@@ -776,8 +817,8 @@ function renderAdminTable() {
     <tr>
       <td class="td-name" data-label="Nama">${item.nama}</td>
       <td data-label="Tanggal">${formatDateID(item.tanggal)}</td>
-      <td data-label="Ziyadah">${item.ziyadah || "-"}</td>
-      <td data-label="Murajaah">${item.murajaah || "-"}</td>
+      <td data-label="Ziyadah">${formatRangeDisplay(item.ziyadah) || "-"}</td>
+      <td data-label="Murajaah">${formatRangeDisplay(item.murajaah) || "-"}</td>
       <td data-label="Catatan" style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.catatan || "-"}</td>
       <td class="td-ket" data-label="Ket."><span class="badge-ket ${getKetBadgeClass(item.keterangan)}">${item.keterangan || "-"}</span></td>
       <td data-label="Aksi">
@@ -817,8 +858,8 @@ window.showDetailModal = function (id) {
   body.innerHTML = `
     <div class="detail-row"><span class="detail-label">Nama</span><span class="detail-value">${data.nama}</span></div>
     <div class="detail-row"><span class="detail-label">Tanggal</span><span class="detail-value">${formatDateID(data.tanggal)}</span></div>
-    <div class="detail-row"><span class="detail-label">Ziyadah</span><span class="detail-value">${data.ziyadah || "-"}</span></div>
-    <div class="detail-row"><span class="detail-label">Murajaah</span><span class="detail-value">${data.murajaah || "-"}</span></div>
+    <div class="detail-row"><span class="detail-label">Ziyadah</span><span class="detail-value">${formatRangeDisplay(data.ziyadah) || "-"}</span></div>
+    <div class="detail-row"><span class="detail-label">Murajaah</span><span class="detail-value">${formatRangeDisplay(data.murajaah) || "-"}</span></div>
     <div class="detail-row"><span class="detail-label">Catatan</span><span class="detail-value">${data.catatan || "-"}</span></div>
     <div class="detail-row"><span class="detail-label">Keterangan</span><span class="detail-value"><span class="badge-ket ${getKetBadgeClass(data.keterangan)}">${data.keterangan || "-"}</span></span></div>
   `;
