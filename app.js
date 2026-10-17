@@ -299,6 +299,130 @@ window.calNext = function () {
   renderCalendar();
 };
 
+// ===================== ADMIN DATE PICKER =====================
+let adminCalMonth, adminCalYear;
+let adminSelectedDate = null;
+
+function toDateStr(d) {
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+
+function parseDateStr(str) {
+  if (!str) return null;
+  const parts = String(str).split("-").map(Number);
+  if (parts.length !== 3 || parts.some(isNaN)) return null;
+  const d = new Date(parts[0], parts[1] - 1, parts[2]);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function renderAdminCalendar() {
+  const monthNames = [
+    "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+    "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+  ];
+  document.getElementById("admin-cal-label").textContent = monthNames[adminCalMonth] + " " + adminCalYear;
+
+  const daysContainer = document.getElementById("admin-cal-days");
+  daysContainer.innerHTML = "";
+
+  const firstDay = new Date(adminCalYear, adminCalMonth, 1).getDay();
+  const daysInMonth = new Date(adminCalYear, adminCalMonth + 1, 0).getDate();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  for (let i = 0; i < firstDay; i++) {
+    const empty = document.createElement("div");
+    empty.className = "cal-day cal-day-empty";
+    daysContainer.appendChild(empty);
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const cell = document.createElement("div");
+    cell.className = "cal-day";
+    cell.textContent = d;
+
+    const cellDate = new Date(adminCalYear, adminCalMonth, d);
+    cellDate.setHours(0, 0, 0, 0);
+
+    if (cellDate.getTime() === today.getTime()) {
+      cell.classList.add("cal-day-today");
+    }
+    if (adminSelectedDate && cellDate.getTime() === adminSelectedDate.getTime()) {
+      cell.classList.add("cal-day-selected");
+    }
+    cell.addEventListener("click", () => selectAdminDate(d));
+    daysContainer.appendChild(cell);
+  }
+}
+
+function selectAdminDate(day) {
+  adminSelectedDate = new Date(adminCalYear, adminCalMonth, day);
+  adminSelectedDate.setHours(0, 0, 0, 0);
+  setFormTanggal(toDateStr(adminSelectedDate));
+  closeAdminDatePicker();
+}
+
+function setFormTanggal(dateStr) {
+  const valueEl = document.getElementById("form-tanggal");
+  const textEl = document.getElementById("form-tanggal-text");
+  const trigger = document.getElementById("form-tanggal-display");
+  const parsed = parseDateStr(dateStr);
+  if (valueEl) valueEl.value = parsed ? toDateStr(parsed) : "";
+  if (textEl) {
+    if (parsed) {
+      textEl.textContent = parsed.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+      trigger.classList.add("has-value");
+    } else {
+      textEl.textContent = "Pilih tanggal";
+      trigger.classList.remove("has-value");
+    }
+  }
+  adminSelectedDate = parsed;
+}
+
+function openAdminDatePicker() {
+  const base = adminSelectedDate || new Date();
+  adminCalMonth = base.getMonth();
+  adminCalYear = base.getFullYear();
+  renderAdminCalendar();
+  document.getElementById("form-tanggal-popover").classList.remove("hidden");
+}
+
+function closeAdminDatePicker() {
+  const pop = document.getElementById("form-tanggal-popover");
+  if (pop) pop.classList.add("hidden");
+}
+
+window.toggleAdminDatePicker = function (e) {
+  if (e) e.stopPropagation();
+  const pop = document.getElementById("form-tanggal-popover");
+  if (pop.classList.contains("hidden")) {
+    openAdminDatePicker();
+  } else {
+    closeAdminDatePicker();
+  }
+};
+
+window.adminCalPrev = function (e) {
+  if (e) e.stopPropagation();
+  adminCalMonth--;
+  if (adminCalMonth < 0) { adminCalMonth = 11; adminCalYear--; }
+  renderAdminCalendar();
+};
+
+window.adminCalNext = function (e) {
+  if (e) e.stopPropagation();
+  adminCalMonth++;
+  if (adminCalMonth > 11) { adminCalMonth = 0; adminCalYear++; }
+  renderAdminCalendar();
+};
+
+document.addEventListener("click", function (e) {
+  const picker = document.getElementById("form-tanggal-picker");
+  if (picker && !picker.contains(e.target)) closeAdminDatePicker();
+});
+
 // ===================== SHOW REPORT CARD =====================
 window.showReportCard = function () {
   if (!selectedCalDate) return showToast("Pilih tanggal terlebih dahulu!", "error");
@@ -957,7 +1081,7 @@ window.editLaporan = function (id) {
 
   document.getElementById("admin-doc-id").value = data.id;
   preserveSelectValue(document.getElementById("form-nama"), data.nama);
-  document.getElementById("form-tanggal").value = data.tanggal;
+  setFormTanggal(data.tanggal);
 
   let z = { surat: "", awal: "", akhir: "" };
   if (data.ziyadah_surat || data.ziyadah_ayat_awal || data.ziyadah_ayat_akhir) {
@@ -1004,7 +1128,7 @@ window.editLaporan = function (id) {
 window.resetFormAdmin = function () {
   document.getElementById("admin-doc-id").value = "";
   document.getElementById("form-nama").value = "";
-  document.getElementById("form-tanggal").value = "";
+  setFormTanggal("");
   document.getElementById("form-ziyadah-surat").value = "";
   document.getElementById("form-ziyadah-ayat-awal").value = "";
   document.getElementById("form-ziyadah-ayat-akhir").value = "";

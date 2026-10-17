@@ -999,6 +999,41 @@ body {
 .form-input::placeholder {
   color: var(--text-muted);
 }
+.datepicker {
+  position: relative;
+}
+.datepicker-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+.datepicker-trigger.has-value {
+  color: var(--text-primary);
+}
+.datepicker-trigger svg {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+.datepicker-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 80;
+  width: 300px;
+  max-width: 100%;
+  background: var(--navy-800);
+  border: 1px solid var(--border-color-hover);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  box-shadow: var(--shadow-lg);
+}
+.datepicker-popover .cal-day {
+  cursor: pointer;
+}
 .form-textarea {
   resize: vertical;
   min-height: 60px;
